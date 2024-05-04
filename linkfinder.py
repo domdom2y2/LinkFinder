@@ -28,42 +28,42 @@ except ImportError:
 # Regex used
 regex_str = r"""
 
-  (?:"|')                               # Start newline delimiter
+  (?:"|'|`)                               # Start newline delimiter
 
   (
     ((?:[a-zA-Z]{1,10}://|//)           # Match a scheme [a-Z]*1-10 or //
-    [^"'/]{1,}\.                        # Match a domainname (any character + dot)
-    [a-zA-Z]{2,}[^"']{0,})              # The domainextension and/or path
+    [^`"'/]{1,}\.                        # Match a domainname (any character + dot)
+    [a-zA-Z]{2,}[^`"']{0,})              # The domainextension and/or path
 
     |
 
     ((?:/|\.\./|\./)                    # Start with /,../,./
-    [^"'><,;| *()(%%$^/\\\[\]]          # Next character can't be...
-    [^"'><,;|()]{1,})                   # Rest of the characters can't be
+    [^`"'><,;| *()(%%$^/\\\[\]]          # Next character can't be...
+    [^`"'><,;|()]{1,})                   # Rest of the characters can't be
 
     |
 
     ([a-zA-Z0-9_\-/]{1,}/               # Relative endpoint with /
-    [a-zA-Z0-9_\-/.]{1,}                # Resource name
+    [a-zA-Z0-9_\-/]{1,}                 # Resource name
     \.(?:[a-zA-Z]{1,4}|action)          # Rest + extension (length 1-4 or action)
-    (?:[\?|#][^"|']{0,}|))              # ? or # mark with parameters
+    (?:[\?|#][^"|'|`]{0,}|))              # ? or # mark with parameters
 
     |
 
     ([a-zA-Z0-9_\-/]{1,}/               # REST API (no extension) with /
     [a-zA-Z0-9_\-/]{3,}                 # Proper REST endpoints usually have 3+ chars
-    (?:[\?|#][^"|']{0,}|))              # ? or # mark with parameters
+    (?:[\?|#][^"|'|`]{0,}|))              # ? or # mark with parameters
 
     |
 
     ([a-zA-Z0-9_\-]{1,}                 # filename
     \.(?:php|asp|aspx|jsp|json|
          action|html|js|txt|xml)        # . + extension
-    (?:[\?|#][^"|']{0,}|))              # ? or # mark with parameters
+    (?:[\?|#][^"|'|`]{0,}|))              # ? or # mark with parameters
 
   )
 
-  (?:"|')                               # End newline delimiter
+  (?:"|'|`)                               # End newline delimiter
 
 """
 
@@ -104,10 +104,9 @@ def parser_input(input):
     # Method 4 - Folder with a wildcard
     if "*" in input:
         paths = glob.glob(os.path.abspath(input))
-        file_paths = [p for p in paths if os.path.isfile(p)]
-        for index, path in enumerate(file_paths):
-            file_paths[index] = "file://%s" % path
-        return (file_paths if len(file_paths) > 0 else parser_error('Input with wildcard does \
+        for index, path in enumerate(paths):
+            paths[index] = "file://%s" % path
+        return (paths if len(paths) > 0 else parser_error('Input with wildcard does \
         not match any files.'))
 
     # Method 5 - Local file
@@ -131,10 +130,10 @@ def send_request(url):
     q.add_header('Cookie', args.cookies)
 
     try:
-        sslcontext = ssl.create_default_context()
+        sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
         response = urlopen(q, timeout=args.timeout, context=sslcontext)
     except:
-        sslcontext = ssl.create_default_context()
+        sslcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         response = urlopen(q, timeout=args.timeout, context=sslcontext)
 
     if response.info().get('Content-Encoding') == 'gzip':
